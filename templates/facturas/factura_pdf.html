@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Factura #{{ factura.id_factura }}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 2.5cm;
+            @frame footer_frame {
+                -pdf-frame-content: footer_content;
+                left: 50pt; width: 512pt; top: 780pt; height: 20pt;
+            }
+        }
+        body {
+            font-family: Helvetica, sans-serif;
+            font-size: 11px;
+            color: #333333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        td {
+            vertical-align: top;
+        }
+        .text-dark-blue {
+            color: #213547;
+        }
+        .bg-dark-blue {
+            background-color: #213547;
+            color: #ffffff;
+        }
+        .header-title {
+            font-size: 38px;
+            font-weight: bold;
+            margin: 0;
+            padding: 0;
+            letter-spacing: 2px;
+        }
+        .table-items th {
+            padding: 10px;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .table-items td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .totals-table td {
+            padding: 8px 10px;
+        }
+        .info-title {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ENCABEZADO (Top Section) -->
+    <table style="margin-bottom: 30px;">
+        <tr>
+            <!-- Lado Izquierdo -->
+            <td style="width: 50%;">
+                <h1 class="header-title text-dark-blue">FACTURA</h1>
+                
+                <p style="color: #777777; margin-top: 20px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">Facturar a:</p>
+                <p style="font-size: 14px; font-weight: bold; margin: 0; color: #213547; text-transform: uppercase;">{{ factura.cliente_nombre }}</p>
+                
+                <p style="margin: 2px 0; color: #555;">C.I. / RUC: {{ factura.cliente_cedula }}</p>
+                <p style="margin: 2px 0; color: #555;">{{ factura.cliente_direccion or 'Dirección no registrada' }}</p>
+                <p style="margin: 2px 0; color: #555;">Telf: {{ factura.cliente_telefono or 'N/A' }} | Email: {{ factura.cliente_email or 'N/A' }}</p>
+            </td>
+
+            <!-- Lado Derecho -->
+            <td style="width: 50%; text-align: right;">
+                <!-- BLOQUE DEL LOGO: Usa una URL web directa para que xhtml2pdf siempre la encuentre -->
+                <div style="min-height: 60px; margin-bottom: 10px;">
+                    <img src="statics\imagenes\logo.png" alt="Logo Abogados" width="120">
+                </div>
+                
+                <p style="font-weight: bold; font-size: 11px; margin-top: 5px; color: #213547;">N&S UQUILLAS ABOGADOS</p>
+                <p style="font-size: 8px; color: #777; margin: 0;">Asesoría Legal y Defensa Jurídica en Ecuador</p>
+                <p style="font-size: 8px; margin: 2px 0; color: #777;">Dirección: Av. Gral. Ignacio de Veintimilla y Av. Río Amazonas</p>
+                <p style="font-size: 8px; margin: 2px 0; color: #777;">Contactos: 099-285-6416 | 096-190-0842</p>
+
+                <table style="width: 100%; margin-top: 15px; text-align: right;">
+                    <tr>
+                        <td style="width: 60%; font-weight: bold; color: #555; padding-right: 10px;">Factura #:</td>
+                        <td style="width: 40%; font-weight: bold; color: #213547;">00{{ factura.id_factura }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #555; padding-right: 10px;">Fecha:</td>
+                        <td style="color: #213547;">{{ factura.fecha }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- BARRA DE CASO JUDICIAL -->
+    <div style="background-color: #f8f9fa; border-left: 4px solid #f39c12; padding: 10px 15px; margin-bottom: 25px;">
+        <p style="margin: 0; font-size: 11px; color: #333;">
+            <strong style="color: #213547;">REFERENCIA CASO #{{ factura.numerocaso or factura.id_caso }}:</strong> 
+            {{ factura.nombre_caso }} - {{ factura.caso_descripcion or 'Asesoría y trámite legal.' }}
+        </p>
+    </div>
+
+    <!-- TABLA CENTRAL DE CONCEPTOS -->
+    <table class="table-items" style="margin-bottom: 30px;">
+        <thead>
+            <tr class="bg-dark-blue">
+                <th style="width: 5%; text-align: center;">N°</th>
+                <th style="width: 45%; text-align: left;">Descripción del Servicio</th>
+                <th style="width: 20%; text-align: right;">Precio</th>
+                <th style="width: 10%; text-align: center;">Cant.</th>
+                <th style="width: 20%; text-align: right;">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="text-align: center; color: #555;">1</td>
+                <td style="color: #333;">{{ factura.concepto }}</td>
+                <!-- Al pegar el signo de $ a las llaves, evitamos que se parta en dos líneas -->
+                <td style="text-align: right; color: #555;">${{ "{:,.2f}".format(factura.importe) }}</td>
+                <td style="text-align: center; color: #555;">1</td>
+                <td style="text-align: right; color: #333; font-weight: bold;">${{ "{:,.2f}".format(factura.importe) }}</td>
+            </tr>
+            <!-- Espacio adicional -->
+            <tr>
+                <td style="border: none; height: 20px;" colspan="5">&nbsp;</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- SECCIÓN INFERIOR (Términos, Info y Totales) -->
+    <table>
+        <tr>
+            <!-- Columna Izquierda Inferior -->
+            <td style="width: 50%; padding-right: 30px;">
+                <p class="info-title text-dark-blue">Términos y Condiciones</p>
+                <p style="color: #777; font-size: 9px; line-height: 1.4; text-align: justify;">
+                    El presente documento detalla el cobro por honorarios profesionales y servicios legales prestados. Se ruega realizar el pago correspondiente antes de la fecha límite: <strong>{{ factura.fecha_vencimiento.strftime('%d/%m/%Y') if factura.fecha_vencimiento else '' }}</strong>.
+                </p>
+
+                <p class="info-title text-dark-blue">Abogado a Cargo (Consultas):</p>
+                <p style="font-size: 10px; margin: 2px 0;"><strong>Dr/a. {{ factura.abogado_nombre }}</strong> (C.I. {{ factura.abogado_cedula }})</p>
+                <p style="font-size: 10px; margin: 2px 0; color: #555;">
+                    Telf: {{ factura.abogado_telefono or 'No registrado' }} | Email: {{ factura.abogado_email or 'No registrado' }}
+                </p>
+            </td>
+
+            <!-- Columna Derecha Inferior (Totales y Firma) -->
+            <td style="width: 50%;">
+                <table class="totals-table">
+                    <tr>
+                        <td style="text-align: left; color: #555;">Subtotal:</td>
+                        <td style="text-align: right; color: #213547; font-weight: bold;">${{ "{:,.2f}".format(factura.importe) }}</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: left; color: #555; border-bottom: 1px solid #e0e0e0;">Impuestos (0%):</td>
+                        <td style="text-align: right; color: #213547; font-weight: bold; border-bottom: 1px solid #e0e0e0;">$0.00</td>
+                    </tr>
+                    <!-- Espaciador -->
+                    <tr><td colspan="2" style="height: 10px;"></td></tr>
+                    <!-- Bloque Total Oscuro -->
+                    <tr class="bg-dark-blue">
+                        <td style="text-align: left; font-size: 14px; font-weight: bold;">TOTAL:</td>
+                        <td style="text-align: right; font-size: 14px; font-weight: bold;">${{ "{:,.2f}".format(factura.importe) }}</td>
+                    </tr>
+                </table>
+
+                <!-- ESPACIO FORZADO PARA LA FIRMA A MANO -->
+                <br><br><br><br><br>
+                
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #213547; width: 80%; margin: 0 auto; padding-top: 5px;"></div>
+                    <p style="font-size: 10px; color: #555; margin: 0;">Firma Autorizada</p>
+                    <p style="font-size: 10px; color: #213547; font-weight: bold;">DR. {{ factura.abogado_nombre | upper }}</p>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- AVISO DE VALIDEZ TRIBUTARIA -->
+    <div style="text-align: center; margin-top: 40px;">
+        <p style="font-size: 10px; font-weight: bold; color: #777777; letter-spacing: 1px;">
+            *** DOCUMENTO SIN VALIDEZ TRIBUTARIA ***
+        </p>
+    </div>
+
+    <!-- Numeración Automática en el Pie de Página -->
+    <div id="footer_content" style="text-align: right; font-size: 9px; color: #999;">
+        Documento generado por LawTracking - Página <pdf:pagenumber> de <pdf:pagecount>
+    </div>
+
+</body>
+</html>
