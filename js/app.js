@@ -1,6 +1,6 @@
 // js/app.js
 
-const API_URL = 'https://niusystemabg.onrender.com/api';
+const API_URL = 'https://niusystemabg-wrfi.onrender.com/api';
 
 document.addEventListener('DOMContentLoaded', () => {
     verificarSesion();
