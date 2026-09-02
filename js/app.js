@@ -295,6 +295,54 @@ function cargarVista(vista, param_extra = null) {
         `;
         listarFacturas();
     }
+    else if (vista === 'chatbot') {
+        contenedor.innerHTML = `
+            <div class="d-flex flex-column h-100" style="max-height: 80vh;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2><i class="fa-solid fa-robot text-primary"></i> Sofi Asistente Legal</h2>
+                    <span class="badge bg-primary">Inteligencia Artificial</span>
+                </div>
+                
+                <!-- Área de mensajes (Pantalla principal) -->
+                <div id="chat-historial" class="flex-grow-1 bg-white rounded shadow-sm p-4 mb-3 overflow-auto" style="border: 1px solid #e0e0e0; min-height: 50vh;">
+                    
+                    <!-- Mensaje de bienvenida del Bot -->
+                    <div class="d-flex mb-4">
+                        <div class="me-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <i class="fa-solid fa-scale-balanced"></i>
+                            </div>
+                        </div>
+                        <div class="bg-light p-3 rounded-3 shadow-sm" style="max-width: 75%; border-top-left-radius: 0 !important;">
+                            <p class="mb-1 fw-bold text-dark">Sofi Bot</p>
+                            <p class="mb-0 text-secondary">Hola, mi nombre es Sofi. Mi base de datos ha sido actualizada. <b>Hazme tu consulta legal</b> y buscaré los artículos exactos en la normativa ecuatoriana para responderte.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barra inferior estilo Gemini -->
+                <div class="card shadow-sm border-0 px-2 py-2" style="border-radius: 20px;">
+                    <form id="form-chat" class="d-flex align-items-center gap-2" onsubmit="enviarMensajeBot(event)">
+                        
+                        <!-- INPUT DE TEXTO (Expandido) -->
+                        <input type="text" id="chat-input" class="form-control border-0 shadow-none px-4" placeholder="Pregúntale a la ley (Ej: ¿Cuáles son los deberes primordiales del Estado?)..." autocomplete="off" required style="border-radius: 15px;">
+                        
+                        <!-- BOTÓN DE ENVIAR -->
+                        <button type="submit" class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 45px; height: 45px; flex-shrink: 0;" id="btn-enviar-chat">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        // Hacemos scroll automático al abrir la vista
+        setTimeout(() => {
+            const historial = document.getElementById('chat-historial');
+            if(historial) historial.scrollTop = historial.scrollHeight;
+        }, 100);
+    }
+    
     else if (vista === 'abogados') {
         contenedor.innerHTML = `
             <div class="d-flex justify-content-between mb-3">
@@ -661,4 +709,107 @@ async function guardarFactura(e) {
 
 async function eliminarFactura(id) {
     if(confirm('¿Anular Factura?')) { await fetch(`${API_URL}/facturas/${id}`, {method:'DELETE'}); listarFacturas(); }
+}
+
+// ==========================================
+//          LÓGICA DEL CHATBOT LEGAL
+// ==========================================
+async function enviarMensajeBot(e) {
+    e.preventDefault();
+    const input = document.getElementById('chat-input');
+    const mensajeUsuario = input.value.trim();
+    const historial = document.getElementById('chat-historial');
+    const btnEnviar = document.getElementById('btn-enviar-chat');
+
+    if (!mensajeUsuario) return;
+
+    // Dibujar burbuja usuario
+    historial.insertAdjacentHTML('beforeend', `
+        <div class="d-flex justify-content-end mb-4">
+            <div class="bg-primary text-white p-3 rounded-3 shadow-sm" style="max-width: 75%; border-top-right-radius: 0 !important;">
+                <p class="mb-0">${mensajeUsuario}</p>
+            </div>
+        </div>
+    `);
+    
+    input.value = '';
+    btnEnviar.disabled = true;
+    btnEnviar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    historial.scrollTop = historial.scrollHeight;
+
+    // Indicador "Pensando"
+    const idEscribiendo = 'escribiendo-' + Date.now();
+    historial.insertAdjacentHTML('beforeend', `
+        <div id="${idEscribiendo}" class="d-flex mb-4">
+            <div class="me-3">
+                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                </div>
+            </div>
+            <div class="bg-light p-3 rounded-3" style="max-width: 75%; border-top-left-radius: 0 !important;">
+                <p class="mb-0 text-muted fst-italic">Buscando en la base de datos legal...</p>
+            </div>
+        </div>
+    `);
+    historial.scrollTop = historial.scrollHeight;
+
+    try {
+        // Enviar a la nueva ruta RAG en routes.py
+        const res = await fetch(`${API_URL}/chatbot/preguntar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pregunta: mensajeUsuario })
+        });
+        
+        const data = await res.json();
+        const indicador = document.getElementById(idEscribiendo);
+        if (indicador) indicador.remove();
+
+        if (res.ok && data.respuesta) {
+            // Transformar el array de fuentes en etiquetas HTML (badges)
+            let fuentesHTML = '';
+            if (data.fuentes && data.fuentes.length > 0) {
+                // Filtramos duplicados por si la IA cita la misma fuente dos veces
+                const fuentesUnicas = [...new Set(data.fuentes)];
+                fuentesHTML = fuentesUnicas.map(f => 
+                    `<span class="badge bg-warning text-dark mb-2 me-1 border border-dark shadow-sm" style="font-size: 0.85em;">
+                        <i class="fa-solid fa-book-bookmark"></i> ${f}
+                    </span>`
+                ).join('');
+            }
+
+            historial.insertAdjacentHTML('beforeend', `
+                <div class="d-flex mb-4">
+                    <div class="me-3">
+                        <div class="bg-dark text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="fa-solid fa-scale-balanced"></i>
+                        </div>
+                    </div>
+                    <div class="bg-light p-3 rounded-3 shadow-sm" style="max-width: 85%; border-top-left-radius: 0 !important;">
+                        <p class="mb-1 fw-bold text-dark">Sofi Bot</p>
+                        ${fuentesHTML}
+                        <div class="text-secondary text-wrap mt-1" style="white-space: pre-line; line-height: 1.6;">${data.respuesta}</div>
+                    </div>
+                </div>
+            `);
+        } else {
+            throw new Error(data.error || "Error al procesar la respuesta.");
+        }
+
+    } catch (error) {
+        const indicador = document.getElementById(idEscribiendo);
+        if (indicador) indicador.remove();
+        historial.insertAdjacentHTML('beforeend', `
+            <div class="d-flex mb-4">
+                <div class="bg-danger text-white p-3 rounded-3 shadow-sm" style="max-width: 75%; border-top-left-radius: 0 !important;">
+                    <p class="mb-0"><i class="fa-solid fa-triangle-exclamation"></i> Error: ${error.message}</p>
+                </div>
+            </div>
+        `);
+    } finally {
+        btnEnviar.disabled = false;
+        btnEnviar.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+        input.focus();
+        historial.scrollTop = historial.scrollHeight;
+    }
 }
