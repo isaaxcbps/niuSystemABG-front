@@ -769,7 +769,6 @@ async function enviarMensajeBot(e) {
             // Transformar el array de fuentes en etiquetas HTML (badges)
             let fuentesHTML = '';
             if (data.fuentes && data.fuentes.length > 0) {
-                // Filtramos duplicados por si la IA cita la misma fuente dos veces
                 const fuentesUnicas = [...new Set(data.fuentes)];
                 fuentesHTML = fuentesUnicas.map(f => 
                     `<span class="badge bg-warning text-dark mb-2 me-1 border border-dark shadow-sm" style="font-size: 0.85em;">
@@ -777,6 +776,9 @@ async function enviarMensajeBot(e) {
                     </span>`
                 ).join('');
             }
+
+            // TRUCO VISUAL: Convertir los **asteriscos** de la IA en etiquetas <strong> de HTML
+            let respuestaFormateada = data.respuesta.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
             historial.insertAdjacentHTML('beforeend', `
                 <div class="d-flex mb-4">
@@ -788,10 +790,12 @@ async function enviarMensajeBot(e) {
                     <div class="bg-light p-3 rounded-3 shadow-sm" style="max-width: 85%; border-top-left-radius: 0 !important;">
                         <p class="mb-1 fw-bold text-dark">Sofi Bot</p>
                         ${fuentesHTML}
-                        <div class="text-secondary text-wrap mt-1" style="white-space: pre-line; line-height: 1.6;">${data.respuesta}</div>
+                        <!-- Cambiamos a pre-wrap e inyectamos la respuesta ya formateada -->
+                        <div class="text-secondary text-wrap mt-1" style="white-space: pre-wrap; line-height: 1.6;">${respuestaFormateada}</div>
                     </div>
                 </div>
             `);
+        
         } else {
             throw new Error(data.error || "Error al procesar la respuesta.");
         }
