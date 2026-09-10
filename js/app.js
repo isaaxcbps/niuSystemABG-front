@@ -15,11 +15,21 @@ function verificarSesion() {
     const usuarioLogueado = localStorage.getItem('usuario');
     const fotoPerfil = localStorage.getItem('foto');
     const esAdmin = localStorage.getItem('es_admin');
+    const especialidad = (localStorage.getItem('especializacion') || '').toLowerCase();
     
     if (usuarioLogueado) {
         document.getElementById('pantalla-login').classList.add('d-none');
         document.getElementById('sistema-principal').classList.remove('d-none');
-        document.getElementById('nombre-abogado-nav').innerText = `Dr/a. ${usuarioLogueado}`;
+        
+        // Lógica de detección de género basada en la especialidad
+        let prefijo = 'Dr/a.'; // Por defecto
+        if (especialidad.includes('abogada') || especialidad.includes('administradora')) {
+            prefijo = 'Dra.';
+        } else if (especialidad.includes('abogado') || especialidad.includes('administrador') || usuarioLogueado.toLowerCase() === 'admin') {
+            prefijo = 'Dr.';
+        }
+        
+        document.getElementById('nombre-abogado-nav').innerText = `${prefijo} ${usuarioLogueado}`;
         
         const imgNav = document.getElementById('img-perfil-nav');
         imgNav.classList.remove('d-none');
@@ -51,6 +61,7 @@ async function procesarLogin(evento) {
             localStorage.setItem('usuario', datos.usuario);
             localStorage.setItem('cedula', datos.cedula);
             localStorage.setItem('es_admin', datos.es_admin); 
+            localStorage.setItem('especializacion', datos.especializacion || ''); // Guardamos la especialidad
             if(datos.foto) localStorage.setItem('foto', datos.foto); else localStorage.removeItem('foto');
             verificarSesion();
         } else {
@@ -63,7 +74,6 @@ async function procesarLogin(evento) {
         document.querySelector('#form-login button').innerText = "INGRESAR";
     }
 }
-
 function cerrarSesion() {
     localStorage.clear();
     verificarSesion();
@@ -178,14 +188,32 @@ function cargarVista(vista, param_extra = null) {
     } 
     else if (vista === 'casos') {
         contenedor.innerHTML = `
-            <div class="d-flex justify-content-between mb-3">
-                <h2><i class="fa-solid fa-briefcase"></i> Casos y Expedientes</h2>
-                <button class="btn btn-primary" onclick="mostrarModalCaso()"><i class="fa-solid fa-plus"></i> Nuevo Caso</button>
+            <h2 class="mb-4"><i class="fa-solid fa-briefcase"></i> Casos y Expedientes</h2>
+            
+            <!-- BUSCADOR DE CASOS INTEGRADO -->
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                        </span>
+                        <input type="text" id="input-buscador-casos" class="form-control border-start-0" 
+                               placeholder="Buscar por cédula, nombre, número de caso o tipo..." 
+                               onkeyup="filtrarTablaCasos()">
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-primary shadow-sm w-100" onclick="mostrarModalCaso()">
+                        <i class="fa-solid fa-plus"></i> Nuevo Caso
+                    </button>
+                </div>
             </div>
+
             <table class="table table-hover bg-white shadow-sm rounded">
                 <thead><tr><th>N° Judicial</th><th>Tipo</th><th>Cliente</th><th>Estado</th><th>Fecha</th><th class="text-end">Acciones</th></tr></thead>
                 <tbody id="tabla-casos-body"></tbody>
             </table>
+            
             <!-- Modal Casos -->
             <div class="modal fade" id="modalCaso" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
                 <div class="modal-header bg-dark text-white"><h5 class="modal-title" id="modalCasoTitulo">Caso</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
@@ -303,10 +331,8 @@ function cargarVista(vista, param_extra = null) {
                     <span class="badge bg-primary">Inteligencia Artificial</span>
                 </div>
                 
-                <!-- Área de mensajes (Pantalla principal) -->
+                <!-- Área de mensajes -->
                 <div id="chat-historial" class="flex-grow-1 bg-white rounded shadow-sm p-4 mb-3 overflow-auto" style="border: 1px solid #e0e0e0; min-height: 50vh;">
-                    
-                    <!-- Mensaje de bienvenida del Bot -->
                     <div class="d-flex mb-4">
                         <div class="me-3">
                             <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
@@ -320,14 +346,10 @@ function cargarVista(vista, param_extra = null) {
                     </div>
                 </div>
 
-                <!-- Barra inferior estilo Gemini -->
+                <!-- Barra inferior -->
                 <div class="card shadow-sm border-0 px-2 py-2" style="border-radius: 20px;">
                     <form id="form-chat" class="d-flex align-items-center gap-2" onsubmit="enviarMensajeBot(event)">
-                        
-                        <!-- INPUT DE TEXTO (Expandido) -->
                         <input type="text" id="chat-input" class="form-control border-0 shadow-none px-4" placeholder="Pregúntale a la ley (Ej: ¿Cuáles son los deberes primordiales del Estado?)..." autocomplete="off" required style="border-radius: 15px;">
-                        
-                        <!-- BOTÓN DE ENVIAR -->
                         <button type="submit" class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 45px; height: 45px; flex-shrink: 0;" id="btn-enviar-chat">
                             <i class="fa-solid fa-paper-plane"></i>
                         </button>
@@ -335,8 +357,6 @@ function cargarVista(vista, param_extra = null) {
                 </div>
             </div>
         `;
-        
-        // Hacemos scroll automático al abrir la vista
         setTimeout(() => {
             const historial = document.getElementById('chat-historial');
             if(historial) historial.scrollTop = historial.scrollHeight;
@@ -387,14 +407,12 @@ function cargarVista(vista, param_extra = null) {
 // ==========================================
 async function cargarDatosDashboard() {
     const usuario = localStorage.getItem('usuario');
-    
     const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('dash-fecha').innerText = new Date().toLocaleDateString('es-ES', opcionesFecha).toUpperCase();
     
     try {
         const res = await fetch(`${API_URL}/dashboard/${usuario}`);
         const data = await res.json();
-        
         if(res.ok) {
             document.getElementById('kpi-clientes').innerText = data.total_clientes;
             document.getElementById('kpi-casos').innerText = data.casos_activos;
@@ -409,19 +427,15 @@ async function cargarDatosDashboard() {
                 data.proximos_eventos.forEach(e => {
                     const fechaHora = new Date(e.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
                     const numero = e.numerocaso ? `<span class="badge bg-secondary me-1">${e.numerocaso}</span>` : '';
-                    
-                    tb.innerHTML += `
-                        <tr>
-                            <td class="ps-3 fw-bold text-primary"><i class="fa-regular fa-clock me-1"></i> ${fechaHora}</td>
-                            <td class="fw-bold">${numero} ${e.tipocaso}</td>
-                            <td>${e.descripcion}</td>
-                        </tr>
-                    `;
+                    tb.innerHTML += `<tr>
+                        <td class="ps-3 fw-bold text-primary"><i class="fa-regular fa-clock me-1"></i> ${fechaHora}</td>
+                        <td class="fw-bold">${numero} ${e.tipocaso}</td>
+                        <td>${e.descripcion}</td>
+                    </tr>`;
                 });
             }
         }
     } catch (error) {
-        console.error("Error cargando dashboard:", error);
         document.getElementById('tabla-dash-eventos').innerHTML = '<tr><td colspan="3" class="text-center text-danger py-4">Error al conectar con la base de datos.</td></tr>';
     }
 }
@@ -516,7 +530,14 @@ async function listarCasos() {
         const data = await res.json();
         const tb = document.getElementById('tabla-casos-body'); tb.innerHTML = '';
         data.datos.forEach(c => {
-            tb.innerHTML += `<tr><td class="fw-bold">${c.numerocaso || 'Sin asignar'}</td><td>${c.tipocaso}</td><td>${c.cliente_nombre}</td><td><span class="badge bg-secondary">${c.estado}</span></td><td>${c.fechainicio?c.fechainicio.split('T')[0]:'-'}</td>
+            // EL TRUCO: Agregamos <span style="display:none;">${c.id_cliente}</span>
+            // Esto oculta la cédula a la vista humana, pero el buscador sí la puede leer.
+            tb.innerHTML += `<tr>
+            <td class="fw-bold">${c.numerocaso || 'Sin asignar'}</td>
+            <td>${c.tipocaso}</td>
+            <td>${c.cliente_nombre} <span style="display:none;">${c.id_cliente}</span></td>
+            <td><span class="badge bg-secondary">${c.estado}</span></td>
+            <td>${c.fechainicio?c.fechainicio.split('T')[0]:'-'}</td>
             <td class="text-end">
                 <button class="btn btn-sm btn-outline-warning me-1" onclick="cargarVista('eventos', ${c.id_caso})" title="Citas"><i class="fa-regular fa-calendar"></i></button>
                 <button class="btn btn-sm btn-outline-success me-1" onclick="cargarVista('expediente', ${c.id_caso})" title="Expediente"><i class="fa-regular fa-folder-open"></i></button>
@@ -573,6 +594,23 @@ async function guardarCaso(e) {
 
 async function eliminarCaso(id) {
     if(confirm('¿Eliminar caso y su expediente?')) { await fetch(`${API_URL}/casos/${id}`, {method:'DELETE'}); listarCasos(); }
+}
+
+// FUNCIÓN DEL BUSCADOR DE CASOS EN TIEMPO REAL
+function filtrarTablaCasos() {
+    const textoBusqueda = document.getElementById('input-buscador-casos').value.toLowerCase();
+    const cuerpoTabla = document.getElementById('tabla-casos-body');
+    if (!cuerpoTabla) return;
+
+    const filas = cuerpoTabla.getElementsByTagName('tr');
+    for (let i = 0; i < filas.length; i++) {
+        const textoFila = filas[i].textContent.toLowerCase();
+        if (textoFila.includes(textoBusqueda)) {
+            filas[i].style.display = '';
+        } else {
+            filas[i].style.display = 'none';
+        }
+    }
 }
 
 // ==========================================
@@ -723,7 +761,6 @@ async function enviarMensajeBot(e) {
 
     if (!mensajeUsuario) return;
 
-    // Dibujar burbuja usuario
     historial.insertAdjacentHTML('beforeend', `
         <div class="d-flex justify-content-end mb-4">
             <div class="bg-primary text-white p-3 rounded-3 shadow-sm" style="max-width: 75%; border-top-right-radius: 0 !important;">
@@ -737,7 +774,6 @@ async function enviarMensajeBot(e) {
     btnEnviar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
     historial.scrollTop = historial.scrollHeight;
 
-    // Indicador "Pensando"
     const idEscribiendo = 'escribiendo-' + Date.now();
     historial.insertAdjacentHTML('beforeend', `
         <div id="${idEscribiendo}" class="d-flex mb-4">
@@ -754,7 +790,6 @@ async function enviarMensajeBot(e) {
     historial.scrollTop = historial.scrollHeight;
 
     try {
-        // Enviar a la nueva ruta RAG en routes.py
         const res = await fetch(`${API_URL}/chatbot/preguntar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -766,7 +801,6 @@ async function enviarMensajeBot(e) {
         if (indicador) indicador.remove();
 
         if (res.ok && data.respuesta) {
-            // Transformar el array de fuentes en etiquetas HTML (badges)
             let fuentesHTML = '';
             if (data.fuentes && data.fuentes.length > 0) {
                 const fuentesUnicas = [...new Set(data.fuentes)];
@@ -777,7 +811,6 @@ async function enviarMensajeBot(e) {
                 ).join('');
             }
 
-            // TRUCO VISUAL: Convertir los **asteriscos** de la IA en etiquetas <strong> de HTML
             let respuestaFormateada = data.respuesta.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
             historial.insertAdjacentHTML('beforeend', `
@@ -790,16 +823,13 @@ async function enviarMensajeBot(e) {
                     <div class="bg-light p-3 rounded-3 shadow-sm" style="max-width: 85%; border-top-left-radius: 0 !important;">
                         <p class="mb-1 fw-bold text-dark">Sofi Bot</p>
                         ${fuentesHTML}
-                        <!-- Cambiamos a pre-wrap e inyectamos la respuesta ya formateada -->
                         <div class="text-secondary text-wrap mt-1" style="white-space: pre-wrap; line-height: 1.6;">${respuestaFormateada}</div>
                     </div>
                 </div>
             `);
-        
         } else {
             throw new Error(data.error || "Error al procesar la respuesta.");
         }
-
     } catch (error) {
         const indicador = document.getElementById(idEscribiendo);
         if (indicador) indicador.remove();
