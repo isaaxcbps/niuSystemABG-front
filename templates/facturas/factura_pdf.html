@@ -80,7 +80,7 @@
             <td style="width: 50%; text-align: right;">
                 <!-- BLOQUE DEL LOGO: Usa una URL web directa para que xhtml2pdf siempre la encuentre -->
                 <div style="min-height: 60px; margin-bottom: 10px;">
-                    <img src="static\imagenes\logo.png" alt="Logo Abogados" width="120">
+                    <img src="static/imagenes/logo.png" alt="Logo Abogados" width="120">
                 </div>
                 
                 <p style="font-weight: bold; font-size: 11px; margin-top: 5px; color: #213547;">N&S UQUILLAS ABOGADOS</p>
@@ -125,12 +125,10 @@
             <tr>
                 <td style="text-align: center; color: #555;">1</td>
                 <td style="color: #333;">{{ factura.concepto }}</td>
-                <!-- Al pegar el signo de $ a las llaves, evitamos que se parta en dos líneas -->
                 <td style="text-align: right; color: #555;">${{ "{:,.2f}".format(factura.importe) }}</td>
                 <td style="text-align: center; color: #555;">1</td>
                 <td style="text-align: right; color: #333; font-weight: bold;">${{ "{:,.2f}".format(factura.importe) }}</td>
             </tr>
-            <!-- Espacio adicional -->
             <tr>
                 <td style="border: none; height: 20px;" colspan="5">&nbsp;</td>
             </tr>
@@ -165,9 +163,7 @@
                         <td style="text-align: left; color: #555; border-bottom: 1px solid #e0e0e0;">Impuestos (0%):</td>
                         <td style="text-align: right; color: #213547; font-weight: bold; border-bottom: 1px solid #e0e0e0;">$0.00</td>
                     </tr>
-                    <!-- Espaciador -->
                     <tr><td colspan="2" style="height: 10px;"></td></tr>
-                    <!-- Bloque Total Oscuro -->
                     <tr class="bg-dark-blue">
                         <td style="text-align: left; font-size: 14px; font-weight: bold;">TOTAL:</td>
                         <td style="text-align: right; font-size: 14px; font-weight: bold;">${{ "{:,.2f}".format(factura.importe) }}</td>
@@ -180,7 +176,7 @@
                 <div style="text-align: center;">
                     <div style="border-top: 1px solid #213547; width: 80%; margin: 0 auto; padding-top: 5px;"></div>
                     <p style="font-size: 10px; color: #555; margin: 0;">Firma Autorizada</p>
-                    <p style="font-size: 10px; color: #213547; font-weight: bold;">DR. {{ factura.abogado_nombre | upper }}</p>
+                    <p style="font-size: 10px; color: #213547; font-weight: bold;">{{ factura.prefijo | upper }} {{ factura.abogado_nombre | upper }}</p>
                 </div>
             </td>
         </tr>
