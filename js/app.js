@@ -324,6 +324,7 @@ function cargarVista(vista, param_extra = null) {
         listarFacturas();
     }
     else if (vista === 'chatbot') {
+        window.historialSofi = [];
         contenedor.innerHTML = `
             <div class="d-flex flex-column h-100" style="max-height: 80vh;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -331,7 +332,6 @@ function cargarVista(vista, param_extra = null) {
                     <span class="badge bg-primary">Inteligencia Artificial</span>
                 </div>
                 
-                <!-- Área de mensajes -->
                 <div id="chat-historial" class="flex-grow-1 bg-white rounded shadow-sm p-4 mb-3 overflow-auto" style="border: 1px solid #e0e0e0; min-height: 50vh;">
                     <div class="d-flex mb-4">
                         <div class="me-3">
@@ -341,15 +341,30 @@ function cargarVista(vista, param_extra = null) {
                         </div>
                         <div class="bg-light p-3 rounded-3 shadow-sm" style="max-width: 75%; border-top-left-radius: 0 !important;">
                             <p class="mb-1 fw-bold text-dark">Sofi Bot</p>
-                            <p class="mb-0 text-secondary">Hola, mi nombre es Sofi. Mi base de datos ha sido actualizada. <b>Hazme tu consulta legal</b> y buscaré los artículos exactos en la normativa ecuatoriana para responderte.</p>
+                            <p class="mb-0 text-secondary">Hola. Mi base de datos está lista. <b>Hazme tu consulta</b> y buscaré los artículos en la normativa ecuatoriana.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Barra inferior -->
+                <!-- Barra inferior con filtro -->
                 <div class="card shadow-sm border-0 px-2 py-2" style="border-radius: 20px;">
                     <form id="form-chat" class="d-flex align-items-center gap-2" onsubmit="enviarMensajeBot(event)">
-                        <input type="text" id="chat-input" class="form-control border-0 shadow-none px-4" placeholder="Pregúntale a la ley (Ej: ¿Cuáles son los deberes primordiales del Estado?)..." autocomplete="off" required style="border-radius: 15px;">
+                        <!-- NUEVO: Selector de Código Legal -->
+                        <select id="chat-filtro" class="form-select border-0 shadow-sm bg-light" style="width: 130px; border-radius: 15px; font-size: 0.9em; font-weight: bold;">
+                            <option value="General">General</option>
+                            <option value="CRE">CRE (Constitución)</option>
+                            <option value="CC">CC (Civil)</option>
+                            <option value="COIP">COIP (Penal)</option>
+                            <option value="COGEP">COGEP (Procesal)</option>
+                            <option value="CNA">CNA (Niñez)</option>
+                            <option value="CT">CT (Trabajo)</option>
+                            <option value="COA">COA (Administrativo)</option>
+                            <option value="COFJ">COFJ (Judicial)</option>
+                            <option value="COMYF">COMYF (Financiero)</option>
+                            <option value="COOTAD">COOTAD (Territorial)</option>
+                        </select>
+                        
+                        <input type="text" id="chat-input" class="form-control border-0 shadow-none px-3" placeholder="Pregúntale a la ley..." autocomplete="off" required style="border-radius: 15px;">
                         <button type="submit" class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 45px; height: 45px; flex-shrink: 0;" id="btn-enviar-chat">
                             <i class="fa-solid fa-paper-plane"></i>
                         </button>
@@ -362,7 +377,49 @@ function cargarVista(vista, param_extra = null) {
             if(historial) historial.scrollTop = historial.scrollHeight;
         }, 100);
     }
-    
+    else if (vista === 'biblioteca') {
+        contenedor.innerHTML = `
+            <div class="d-flex justify-content-between mb-3">
+                <h2><i class="fa-solid fa-book-bookmark"></i> Biblioteca Legal</h2>
+                <button id="btn-subir-bib" class="btn btn-primary" onclick="mostrarModalBiblioteca()"><i class="fa-solid fa-upload"></i> Subir Código / Ley</button>
+            </div>
+            <table class="table table-hover bg-white shadow-sm rounded">
+                <thead class="table-dark">
+                    <tr><th>Nombre del Documento</th><th>Descripción</th><th class="text-end">Acciones</th></tr>
+                </thead>
+                <tbody id="tabla-biblioteca-body"></tbody>
+            </table>
+
+            <!-- Modal Biblioteca -->
+            <div class="modal fade" id="modalBiblioteca" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-dark text-white">
+                            <h5 class="modal-title">Subir Ley o Código</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="form-biblioteca" onsubmit="guardarDocumentoBiblioteca(event)">
+                                <label class="small fw-bold">Nombre / Título</label>
+                                <input type="text" id="bib-nombre" class="form-control mb-2" placeholder="Ej: Código Orgánico Integral Penal (COIP)" required>
+                                <label class="small fw-bold">Descripción (Opcional)</label>
+                                <textarea id="bib-descripcion" class="form-control mb-2" rows="2" placeholder="Detalles de vigencia o reformas..."></textarea>
+                                <label class="small fw-bold">Archivo (PDF, Word)</label>
+                                <input type="file" id="bib-archivo" class="form-control mb-3" required>
+                                <button type="submit" class="btn btn-primary w-100" id="btn-guardar-bib">Subir a la Biblioteca</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Aplicamos exactamente tu misma lógica de validación
+        const esAdmin = localStorage.getItem('es_admin');
+        document.getElementById('btn-subir-bib').classList.toggle('d-none', esAdmin !== 'true');
+        
+        listarBiblioteca();
+    }
     else if (vista === 'abogados') {
         contenedor.innerHTML = `
             <div class="d-flex justify-content-between mb-3">
@@ -758,6 +815,10 @@ async function enviarMensajeBot(e) {
     const mensajeUsuario = input.value.trim();
     const historial = document.getElementById('chat-historial');
     const btnEnviar = document.getElementById('btn-enviar-chat');
+    
+    // Capturar la opción elegida en el menú desplegable
+    const filtroDesplegable = document.getElementById('chat-filtro');
+    const filtroSeleccionado = filtroDesplegable ? filtroDesplegable.value : 'General';
 
     if (!mensajeUsuario) return;
 
@@ -783,17 +844,21 @@ async function enviarMensajeBot(e) {
                 </div>
             </div>
             <div class="bg-light p-3 rounded-3" style="max-width: 75%; border-top-left-radius: 0 !important;">
-                <p class="mb-0 text-muted fst-italic">Buscando en la base de datos legal...</p>
+                <p class="mb-0 text-muted fst-italic">Buscando y analizando...</p>
             </div>
         </div>
     `);
     historial.scrollTop = historial.scrollHeight;
 
     try {
+        // Petición limpia: Solo enviamos la pregunta y el filtro seleccionado
         const res = await fetch(`${API_URL}/chatbot/preguntar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pregunta: mensajeUsuario })
+            body: JSON.stringify({ 
+                pregunta: mensajeUsuario,
+                filtro: filtroSeleccionado 
+            })
         });
         
         const data = await res.json();
@@ -845,5 +910,67 @@ async function enviarMensajeBot(e) {
         btnEnviar.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
         input.focus();
         historial.scrollTop = historial.scrollHeight;
+    }
+}
+
+// ==========================================
+//          LÓGICA DE BIBLIOTECA LEGAL
+// ==========================================
+async function listarBiblioteca() {
+    try {
+        const esAdmin = localStorage.getItem('es_admin'); // Leemos tu variable original
+        
+        const res = await fetch(`${API_URL}/biblioteca`);
+        const data = await res.json();
+        const tb = document.getElementById('tabla-biblioteca-body'); tb.innerHTML = '';
+        
+        if(data.datos.length === 0) {
+            tb.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">La biblioteca no tiene documentos disponibles.</td></tr>';
+            return;
+        }
+
+        data.datos.forEach(d => {
+            let btnDescarga = d.enlace_descarga ? `<a href="${d.enlace_descarga}" target="_blank" class="btn btn-sm btn-outline-success me-2" title="Descargar"><i class="fa-solid fa-download"></i> Descargar</a>` : '';
+            
+            // Inyectamos la clase d-none al botón rojo si NO es admin
+            let claseOculta = (esAdmin !== 'true') ? 'd-none' : '';
+            let btnEliminar = `<button class="btn btn-sm btn-outline-danger ${claseOculta}" onclick="eliminarDocumentoBiblioteca(${d.id_documento_legal})"><i class="fa-solid fa-trash"></i></button>`;
+
+            tb.innerHTML += `<tr>
+                <td class="fw-bold text-primary">${d.nombre_documento}</td>
+                <td>${d.descripcion || '-'}</td>
+                <td class="text-end">
+                    ${btnDescarga}
+                    ${btnEliminar}
+                </td>
+            </tr>`;
+        });
+    } catch(e) {}
+}
+
+function mostrarModalBiblioteca() {
+    document.getElementById('form-biblioteca').reset();
+    document.getElementById('btn-guardar-bib').innerText = "Subir Documento";
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBiblioteca')).show();
+}
+
+async function guardarDocumentoBiblioteca(e) {
+    e.preventDefault();
+    const fd = new FormData();
+    fd.append('nombre_documento', document.getElementById('bib-nombre').value);
+    fd.append('descripcion', document.getElementById('bib-descripcion').value);
+    if(document.getElementById('bib-archivo').files[0]) fd.append('archivo', document.getElementById('bib-archivo').files[0]);
+    
+    document.getElementById('btn-guardar-bib').innerText = "Subiendo archivo a la nube...";
+    
+    await fetch(`${API_URL}/biblioteca/subir`, {method: 'POST', body: fd});
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBiblioteca')).hide(); 
+    listarBiblioteca();
+}
+
+async function eliminarDocumentoBiblioteca(id) {
+    if(confirm('¿Estás seguro de eliminar este documento de la biblioteca global?')) { 
+        await fetch(`${API_URL}/biblioteca/${id}`, {method:'DELETE'}); 
+        listarBiblioteca(); 
     }
 }
