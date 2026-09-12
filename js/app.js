@@ -438,10 +438,12 @@ function cargarVista(vista, param_extra = null) {
                                     <div class="col-6 mb-2"><label class="small fw-bold">Especialidad</label><input type="text" id="reg-especializacion" class="form-control form-control-sm"></div>
                                     <div class="col-6 mb-2"><label class="small fw-bold">Teléfono</label><input type="text" id="reg-telefono" class="form-control form-control-sm"></div>
                                     <div class="col-12 mb-2"><label class="small fw-bold">Email</label><input type="email" id="reg-email" class="form-control form-control-sm"></div>
+                                    <div class="col-6 mb-2"><label class="small fw-bold">ID Telegram (Opcional)</label><input type="text" id="reg-telegram" class="form-control form-control-sm" placeholder="Ej: 123456789"></div>                                
                                     <div class="col-6 mb-2 border-top pt-2"><label class="small fw-bold">Usuario</label><input type="text" id="reg-usuario" class="form-control form-control-sm" required></div>
                                     <div class="col-6 mb-2 border-top pt-2"><label class="small fw-bold">Contraseña</label><input type="password" id="reg-password" class="form-control form-control-sm" required></div>
                                     <div class="col-12 mb-3"><label class="small fw-bold">Foto Perfil (Opcional)</label><input type="file" id="reg-imagen" class="form-control form-control-sm" accept="image/*"></div>
                                 </div>
+
                                 <button type="submit" class="btn btn-primary w-100 fw-bold">Registrar</button>
                             </form>
                         </div>
@@ -508,6 +510,7 @@ async function procesarRegistroInterno(e) {
     fd.append('especializacion', document.getElementById('reg-especializacion').value); fd.append('telefono', document.getElementById('reg-telefono').value);
     fd.append('email', document.getElementById('reg-email').value); fd.append('usuario', document.getElementById('reg-usuario').value);
     fd.append('password', document.getElementById('reg-password').value);
+    fd.append('telegram_chat_id', document.getElementById('reg-telegram').value);
     if(document.getElementById('reg-imagen').files[0]) fd.append('imagen', document.getElementById('reg-imagen').files[0]);
 
     try {
